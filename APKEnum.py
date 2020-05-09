@@ -24,7 +24,7 @@ class bcolors:
 
 
 
-rootDir=os.path.expanduser("~")+"/.SourceCodeAnalyzer/" #ConfigFolder ~/.SourceCodeAnalyzer/
+rootDir=os.path.expanduser("~")+"/.APKEnum/" #ConfigFolder ~/.SourceCodeAnalyzer/
 projectDir=""
 apkFilePath=""
 apkFileName=""
@@ -193,15 +193,15 @@ def identifyURLs():
 				fileobj.close()
 			except Exception as e:
 				myPrint("E: Exception while reading "+fullpath,"ERROR")
-			
+
 			try:
 				thread.start_new_thread(findUrls, (filecontent,))
 				thread.start_new_thread(findPublicIPs, (filecontent,))
 				thread.start_new_thread(findS3Bucket, (filecontent,))
 				thread.start_new_thread(findS3Website, (filecontent,))
 			except Exception as e:
-				myPrint("E: Error while spawning threads", "ERROR")					
-						
+				myPrint("E: Error while spawning threads", "ERROR")
+
 def displayResults():
 	global inScopeAuthorityList, authorityList, s3List, s3WebsiteList, publicIpList
 	inScopeAuthorityList=list(set(inScopeAuthorityList))
@@ -214,7 +214,7 @@ def displayResults():
 	else:
 		myPrint("\nList of URLs found in the application", "SECURE")
 		printList(authorityList)
-		
+
 	if(scopeMode and len(inScopeAuthorityList)==0):
 		myPrint("\nNo in-scope URL found", "INSECURE")
 	elif scopeMode:
@@ -245,7 +245,7 @@ def displayResults():
 
 ####################################################################################################
 
-print(bcolors.OKBLUE+""" 
+print(bcolors.OKBLUE+"""
 
 :::'###::::'########::'##:::'##:'########:'##::: ##:'##::::'##:'##::::'##:
 ::'## ##::: ##.... ##: ##::'##:: ##.....:: ###:: ##: ##:::: ##: ###::'###:
@@ -255,13 +255,13 @@ print(bcolors.OKBLUE+"""
  ##.... ##: ##:::::::: ##:. ##:: ##::::::: ##:. ###: ##:::: ##: ##:.:: ##:
  ##:::: ##: ##:::::::: ##::. ##: ########: ##::. ##:. #######:: ##:::: ##:
 ..:::::..::..:::::::::..::::..::........::..::::..:::.......:::..:::::..::
-	"""+bcolors.OKRED+bcolors.BOLD+"""         				
+	"""+bcolors.OKRED+bcolors.BOLD+"""
                   # Developed By Shiv Sahni - @shiv__sahni
 """+bcolors.ENDC)
 
 if ((len(sys.argv)==2) and (sys.argv[1]=="-h" or sys.argv[1]=="--help")):
 	myPrint("Usage: python APKEnum.py -p/--path <apkPathName> [ -s/--scope \"comma, seperated, list\"]","ERROR")
-	myPrint("\t-p/--path: Pathname of the APK file", "ERROR") 
+	myPrint("\t-p/--path: Pathname of the APK file", "ERROR")
 	myPrint("\t-s/--scope: List of keywords to filter out domains", "ERROR")
 	print ""
 	exit(1);
@@ -270,7 +270,7 @@ if (len(sys.argv)<3):
 	myPrint("E: Please provide the required arguments to initiate", "ERROR")
 	print ""
 	myPrint("E: Usage: python APKEnum.py -p/--path <apkPathName> [ -s/--scope \"comma, seperated, list\"]","ERROR")
-	myPrint("E: Please try again!!", "ERROR") 
+	myPrint("E: Please try again!!", "ERROR")
 	print ""
 	exit(1);
 
