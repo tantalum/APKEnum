@@ -7,21 +7,6 @@ import hashlib
 import threading
 import logging
 
-class bcolors:
-    TITLE = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    INFO = '\033[93m'
-    OKRED = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    BGRED = '\033[41m'
-    UNDERLINE = '\033[4m'
-    FGWHITE = '\033[37m'
-    FAIL = '\033[95m'
-
-
-
 rootDir = os.path.expanduser("~")+"/.APKEnum/" #ConfigFolder ~/.SourceCodeAnalyzer/
 projectDir = ""
 apkFilePath = ""
@@ -47,31 +32,41 @@ s3Website1 = r"https*://(.+?)\.s3-website\..+?\.amazonaws\.com"
 s3Website2 = r"https*://(.+?)\.s3-website-.+?\.amazonaws\.com"
 publicIp = r'https*://(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31))(?<!127)(?<!^10)(?<!^0)\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!192\.168)(?<!172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31))\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!\.255$))'
 
-def color_print(text, type):
-    if type == "INFO" :
-        print(bcolors.INFO+bcolors.BOLD+text+bcolors.ENDC+"\n")
-    if type == "INFO_WS" :
-        print(bcolors.INFO+bcolors.BOLD+text+bcolors.ENDC)
-    if type == "PLAIN_OUTPUT_WS" :
-        print(bcolors.INFO+text+bcolors.ENDC)
-    if type == "ERROR" :
-        print(bcolors.BGRED+bcolors.FGWHITE+bcolors.BOLD+text+bcolors.ENDC)
-    if type == "MESSAGE_WS" :
-        print(bcolors.TITLE+bcolors.BOLD+text+bcolors.ENDC)
-    if type == "MESSAGE" :
-        print(bcolors.TITLE+bcolors.BOLD+text+bcolors.ENDC+"\n")
-    if type == "INSECURE" :
-        print(bcolors.OKRED+bcolors.BOLD+text+bcolors.ENDC+"\n")
-    if type == "INSECURE_WS" :
-        print(bcolors.OKRED+bcolors.BOLD+text+bcolors.ENDC)
-    if type == "OUTPUT" :
-        print(bcolors.OKBLUE+bcolors.BOLD+text+bcolors.ENDC+"\n")
-    if type == "OUTPUT_WS" :
-        print(bcolors.OKBLUE+bcolors.BOLD+text+bcolors.ENDC)
-    if type == "SECURE_WS" :
-        print(bcolors.OKGREEN+bcolors.BOLD+text+bcolors.ENDC)
-    if type == "SECURE" :
-        print(bcolors.OKGREEN+bcolors.BOLD+text+bcolors.ENDC+"\n")
+def color_print(text, category):
+    txt_color_title = '\033[95m'
+    txt_color_okblue = '\033[94m'
+    txt_color_okgreen = '\033[92m'
+    txt_color_info = '\033[93m'
+    txt_color_okred = '\033[91m'
+    txt_color_endc = '\033[0m'
+    txt_color_bold = '\033[1m'
+    txt_color_bgred = '\033[41m'
+    txt_color_fgwhite = '\033[37m'
+
+    if category == "INFO" :
+        print(txt_color_info+txt_color_bold+text+txt_color_endc+"\n")
+    if category == "INFO_WS" :
+        print(txt_color_info+txt_color_bold+text+txt_color_endc)
+    if category == "PLAIN_OUTPUT_WS" :
+        print(txt_color_info+text+txt_color_endc)
+    if category == "ERROR" :
+        print(txt_color_bgred+txt_color_fgwhite+txt_color_bold+text+txt_color_endc)
+    if category == "MESSAGE_WS" :
+        print(txt_color_title+txt_color_bold+text+txt_color_endc)
+    if category == "MESSAGE" :
+        print(txt_color_title+txt_color_bold+text+txt_color_endc+"\n")
+    if category == "INSECURE" :
+        print(txt_color_okred+txt_color_bold+text+txt_color_endc+"\n")
+    if category == "INSECURE_WS" :
+        print(txt_color_okred+txt_color_bold+text+txt_color_endc)
+    if category == "OUTPUT" :
+        print(txt_color_okblue+txt_color_bold+text+txt_color_endc+"\n")
+    if category == "OUTPUT_WS" :
+        print(txt_color_okblue+txt_color_bold+text+txt_color_endc)
+    if category == "SECURE_WS" :
+        print(txt_color_okgreen+txt_color_bold+text+txt_color_endc)
+    if category == "SECURE" :
+        print(txt_color_okgreen+txt_color_bold+text+txt_color_endc+"\n")
 
 
 def isNewInstallation():
@@ -231,7 +226,7 @@ def displayResults():
 
 ####################################################################################################
 
-print(bcolors.OKBLUE+""")
+print("""
 
 :::'###::::'########::'##:::'##:'########:'##::: ##:'##::::'##:'##::::'##:
 ::'## ##::: ##.... ##: ##::'##:: ##.....:: ###:: ##: ##:::: ##: ###::'###:
@@ -241,9 +236,9 @@ print(bcolors.OKBLUE+""")
  ##.... ##: ##:::::::: ##:. ##:: ##::::::: ##:. ###: ##:::: ##: ##:.:: ##:
  ##:::: ##: ##:::::::: ##::. ##: ########: ##::. ##:. #######:: ##:::: ##:
 ..:::::..::..:::::::::..::::..::........::..::::..:::.......:::..:::::..::
-    """+bcolors.OKRED+bcolors.BOLD+"""
+
          # Developed By Shiv Sahni - @shiv__sahni
-"""+bcolors.ENDC)
+""")
 
 if ((len(sys.argv)==2) and (sys.argv[1]=="-h" or sys.argv[1]=="--help")):
     print("Usage: python APKEnum.py -p/--path <apkPathName> [ -s/--scope \"comma, seperated, list\"]")
