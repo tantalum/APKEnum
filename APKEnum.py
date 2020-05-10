@@ -5,6 +5,7 @@ import ntpath
 import re
 import hashlib
 import threading
+import re
 
 class bcolors:
     TITLE = '\033[95m'
@@ -30,8 +31,6 @@ scopeMode=False
 
 
 scopeList=[]
-
-
 authorityList=[]
 inScopeAuthorityList=[]
 publicIpList=[]
@@ -39,14 +38,14 @@ s3List=[]
 s3WebsiteList=[]
 
 
-urlRegex='(http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+):?\d*)([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?'#regex to extract domain
-apktoolPath="./Dependencies/apktool.jar"
-s3Regex1="https*://(.+?)\.s3\..+?\.amazonaws\.com\/.+?"
-s3Regex2="https*://s3\..+?\.amazonaws\.com\/(.+?)\/.+?"
-s3Regex3="S3://(.+?)/"
-s3Website1="https*://(.+?)\.s3-website\..+?\.amazonaws\.com"
-s3Website2="https*://(.+?)\.s3-website-.+?\.amazonaws\.com"
-publicIp="https*://(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31))(?<!127)(?<!^10)(?<!^0)\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!192\.168)(?<!172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31))\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!\.255$))"
+urlRegex = r'(http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+):?\d*)([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?' #regex to extract domain
+apktoolPath = "./Dependencies/apktool.jar"
+s3Regex1 = r"https*://(.+?)\.s3\..+?\.amazonaws\.com\/.+?"
+s3Regex2 = r"https*://s3\..+?\.amazonaws\.com\/(.+?)\/.+?"
+s3Regex3 = r"S3://(.+?)/"
+s3Website1 = r"https*://(.+?)\.s3-website\..+?\.amazonaws\.com"
+s3Website2 = r"https*://(.+?)\.s3-website-.+?\.amazonaws\.com"
+publicIp = r'https*://(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31))(?<!127)(?<!^10)(?<!^0)\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!192\.168)(?<!172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31))\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!\.255$))'
 
 def myPrint(text, type):
 	if(type=="INFO"):
@@ -179,7 +178,6 @@ def findPublicIPs(line):
 
 
 def identifyURLs():
-	global domainList, authorityList, inScopeDomainList, inScopeAuthorityList
 	filecontent=""
 	for dir_path, dirs, file_names in os.walk(rootDir+apkFileName+"_"+hashlib.md5().hexdigest()):
 		for file_name in file_names:
@@ -189,7 +187,8 @@ def identifyURLs():
 				filecontent = fileobj.read()
 				fileobj.close()
 			except Exception as e:
-				myPrint("E: Exception while reading "+fullpath,"ERROR")
+                                myPrint("E: Exception while reading "+fullpath, "ERROR")
+                                myPrint(str(e), "ERROR")
 
 			try:
                             threads = map(
@@ -264,7 +263,7 @@ if ((len(sys.argv)==2) and (sys.argv[1]=="-h" or sys.argv[1]=="--help")):
 	myPrint("\t-p/--path: Pathname of the APK file", "ERROR")
 	myPrint("\t-s/--scope: List of keywords to filter out domains", "ERROR")
 	print()
-	exit(1);
+	exit(1)
 
 if (len(sys.argv)<3):
 	myPrint("E: Please provide the required arguments to initiate", "ERROR")
@@ -272,7 +271,7 @@ if (len(sys.argv)<3):
 	myPrint("E: Usage: python APKEnum.py -p/--path <apkPathName> [ -s/--scope \"comma, seperated, list\"]","ERROR")
 	myPrint("E: Please try again!!", "ERROR")
 	print()
-	exit(1);
+	exit(1)
 
 if ((len(sys.argv)>4) and (sys.argv[3]=="-s" or sys.argv[3]=="--scope")):
 	scopeString=sys.argv[4].strip()
