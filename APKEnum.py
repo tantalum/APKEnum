@@ -4,9 +4,10 @@ import sys
 import ntpath
 import time
 import re
-import urlparse, urllib2
+import urllib
+import urllib.parse as urlparse
 import hashlib
-import thread
+import threading
 import traceback
 
 class bcolors:
@@ -53,40 +54,40 @@ publicIp="https*://(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!172\.(16
 
 def myPrint(text, type):
 	if(type=="INFO"):
-		print bcolors.INFO+bcolors.BOLD+text+bcolors.ENDC+"\n"
+		print(bcolors.INFO+bcolors.BOLD+text+bcolors.ENDC+"\n")
 		return
 	if(type=="INFO_WS"):
-		print bcolors.INFO+bcolors.BOLD+text+bcolors.ENDC
+		print(bcolors.INFO+bcolors.BOLD+text+bcolors.ENDC)
 		return
 	if(type=="PLAIN_OUTPUT_WS"):
-		print bcolors.INFO+text+bcolors.ENDC
+		print(bcolors.INFO+text+bcolors.ENDC)
 		return
 	if(type=="ERROR"):
-		print bcolors.BGRED+bcolors.FGWHITE+bcolors.BOLD+text+bcolors.ENDC
+		print(bcolors.BGRED+bcolors.FGWHITE+bcolors.BOLD+text+bcolors.ENDC)
 		return
 	if(type=="MESSAGE_WS"):
-		print bcolors.TITLE+bcolors.BOLD+text+bcolors.ENDC
+		print(bcolors.TITLE+bcolors.BOLD+text+bcolors.ENDC)
 		return
 	if(type=="MESSAGE"):
-		print bcolors.TITLE+bcolors.BOLD+text+bcolors.ENDC+"\n"
+		print(bcolors.TITLE+bcolors.BOLD+text+bcolors.ENDC+"\n")
 		return
 	if(type=="INSECURE"):
-		print bcolors.OKRED+bcolors.BOLD+text+bcolors.ENDC+"\n"
+		print(bcolors.OKRED+bcolors.BOLD+text+bcolors.ENDC+"\n")
 		return
 	if(type=="INSECURE_WS"):
-		print bcolors.OKRED+bcolors.BOLD+text+bcolors.ENDC
+		print(bcolors.OKRED+bcolors.BOLD+text+bcolors.ENDC)
 		return
 	if(type=="OUTPUT"):
-		print bcolors.OKBLUE+bcolors.BOLD+text+bcolors.ENDC+"\n"
+		print(bcolors.OKBLUE+bcolors.BOLD+text+bcolors.ENDC+"\n")
 		return
 	if(type=="OUTPUT_WS"):
-		print bcolors.OKBLUE+bcolors.BOLD+text+bcolors.ENDC
+		print(bcolors.OKBLUE+bcolors.BOLD+text+bcolors.ENDC)
 		return
 	if(type=="SECURE_WS"):
-		print bcolors.OKGREEN+bcolors.BOLD+text+bcolors.ENDC
+		print(bcolors.OKGREEN+bcolors.BOLD+text+bcolors.ENDC)
 		return
 	if(type=="SECURE"):
-		print bcolors.OKGREEN+bcolors.BOLD+text+bcolors.ENDC+"\n"
+		print(bcolors.OKGREEN+bcolors.BOLD+text+bcolors.ENDC+"\n")
 		return
 
 
@@ -103,7 +104,7 @@ def isValidPath(apkFilePath):
 	myPrint("I: Checking if the APK file path is valid.", "INFO_WS")
 	if (os.path.exists(apkFilePath)==False):
 		myPrint("E: Incorrect APK file path found. Please try again with correct file name.", "ERROR")
-		print
+		print()
 		exit(1)
 	else:
 		myPrint("I: APK File Found.", "INFO_WS")
@@ -128,7 +129,7 @@ def reverseEngineerApplication(apkFileName):
 	result=os.system("java -jar "+apktoolPath+" d "+"--output "+'"'+projectDir+"/apktool/"+'"'+' "'+apkFilePath+'"'+'>/dev/null')
 	if (result!=0):
 		myPrint("E: Apktool failed with exit status "+str(result)+". Please Try Again.", "ERROR")
-		print
+		print()
 		exit(1)
 	myPrint("I: Successfully decompiled the application. Proceeding with scanning code.", "INFO_WS")
 
@@ -159,7 +160,7 @@ def findS3Website(line):
 
 	temp=re.findall(s3Website2,line)
 	if (len(temp)!=0):
-		print temp
+		print(temp)
 		for element in temp:
 			s3WebsiteList.append(element)
 
@@ -195,10 +196,13 @@ def identifyURLs():
 				myPrint("E: Exception while reading "+fullpath,"ERROR")
 
 			try:
-				thread.start_new_thread(findUrls, (filecontent,))
-				thread.start_new_thread(findPublicIPs, (filecontent,))
-				thread.start_new_thread(findS3Bucket, (filecontent,))
-				thread.start_new_thread(findS3Website, (filecontent,))
+                            threads = map(
+                                    lambda op: threading.Thread(target=op, args=(filecontent,)),
+                                    [findUrls, findPublicIPs, findS3Bucket, findS3Website])
+                            for thread in threads:
+                                thread.start()
+                            for thread in threads:
+                                thread.join()
 			except Exception as e:
 				myPrint("E: Error while spawning threads", "ERROR")
 
@@ -238,14 +242,14 @@ def displayResults():
 	else:
 		myPrint("\nList of IPs found in the application", "SECURE")
 		printList(publicIpList)
-	print ""
+	print("")
 
 ####################################################################################################
 
 
 ####################################################################################################
 
-print(bcolors.OKBLUE+"""
+print(bcolors.OKBLUE+""")
 
 :::'###::::'########::'##:::'##:'########:'##::: ##:'##::::'##:'##::::'##:
 ::'## ##::: ##.... ##: ##::'##:: ##.....:: ###:: ##: ##:::: ##: ###::'###:
@@ -263,15 +267,15 @@ if ((len(sys.argv)==2) and (sys.argv[1]=="-h" or sys.argv[1]=="--help")):
 	myPrint("Usage: python APKEnum.py -p/--path <apkPathName> [ -s/--scope \"comma, seperated, list\"]","ERROR")
 	myPrint("\t-p/--path: Pathname of the APK file", "ERROR")
 	myPrint("\t-s/--scope: List of keywords to filter out domains", "ERROR")
-	print ""
+	print()
 	exit(1);
 
 if (len(sys.argv)<3):
 	myPrint("E: Please provide the required arguments to initiate", "ERROR")
-	print ""
+	print()
 	myPrint("E: Usage: python APKEnum.py -p/--path <apkPathName> [ -s/--scope \"comma, seperated, list\"]","ERROR")
 	myPrint("E: Please try again!!", "ERROR")
-	print ""
+	print()
 	exit(1);
 
 if ((len(sys.argv)>4) and (sys.argv[3]=="-s" or sys.argv[3]=="--scope")):
