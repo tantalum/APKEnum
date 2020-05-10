@@ -2,13 +2,9 @@
 import os
 import sys
 import ntpath
-import time
 import re
-import urllib
-import urllib.parse as urlparse
 import hashlib
 import threading
-import traceback
 
 class bcolors:
     TITLE = '\033[95m'
