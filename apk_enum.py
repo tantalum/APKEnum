@@ -5,6 +5,7 @@ import ntpath
 import re
 import hashlib
 import threading
+import logging
 
 class bcolors:
     TITLE = '\033[95m'
@@ -46,7 +47,7 @@ s3Website1 = r"https*://(.+?)\.s3-website\..+?\.amazonaws\.com"
 s3Website2 = r"https*://(.+?)\.s3-website-.+?\.amazonaws\.com"
 publicIp = r'https*://(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31))(?<!127)(?<!^10)(?<!^0)\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!192\.168)(?<!172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31))\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!\.255$))'
 
-def myPrint(text, type):
+def color_print(text, type):
     if type == "INFO" :
         print(bcolors.INFO+bcolors.BOLD+text+bcolors.ENDC+"\n")
     if type == "INFO_WS" :
@@ -75,7 +76,7 @@ def myPrint(text, type):
 
 def isNewInstallation():
     if (os.path.exists(rootDir)==False):
-        myPrint("Thank you for installing APKEnum", "OUTPUT_WS")
+        color_print("Thank you for installing APKEnum", "OUTPUT_WS")
         os.mkdir(rootDir)
         return True
     else:
@@ -83,13 +84,13 @@ def isNewInstallation():
 
 def isValidPath(apkFilePath):
     global apkFileName
-    myPrint("I: Checking if the APK file path is valid.", "INFO_WS")
+    color_print("I: Checking if the APK file path is valid.", "INFO_WS")
     if (os.path.exists(apkFilePath)==False):
-        myPrint("E: Incorrect APK file path found. Please try again with correct file name.", "ERROR")
+        color_print("E: Incorrect APK file path found. Please try again with correct file name.", "ERROR")
         print()
         exit(1)
     else:
-        myPrint("I: APK File Found.", "INFO_WS")
+        color_print("I: APK File Found.", "INFO_WS")
         apkFileName=ntpath.basename(apkFilePath)
 
 def printList(lst):
@@ -97,23 +98,22 @@ def printList(lst):
     for item in lst:
         counter=counter+1
         entry=str(counter)+". "+item
-        myPrint(entry, "PLAIN_OUTPUT_WS")
+        color_print(entry, "PLAIN_OUTPUT_WS")
 
 def reverseEngineerApplication(apkFileName):
     global projectDir
-    myPrint("I: Initiating APK decompilation process", "INFO_WS")
+    color_print("I: Initiating APK decompilation process", "INFO_WS")
     projectDir=rootDir+apkFileName+"_"+hashlib.md5().hexdigest()
     if (os.path.exists(projectDir)==True):
-        myPrint("I: The APK is already decompiled. Skipping decompilation and proceeding with scanning the application.", "INFO_WS")
+        color_print("I: The APK is already decompiled. Skipping decompilation and proceeding with scanning the application.", "INFO_WS")
         return projectDir
     os.mkdir(projectDir)
-    myPrint("I: Decompiling the APK file using APKtool.", "INFO_WS")
+    color_print("I: Decompiling the APK file using APKtool.", "INFO_WS")
     result=os.system("java -jar "+apktoolPath+" d "+"--output "+'"'+projectDir+"/apktool/"+'"'+' "'+apkFilePath+'"'+'>/dev/null')
     if (result!=0):
-        myPrint("E: Apktool failed with exit status "+str(result)+". Please Try Again.", "ERROR")
-        print()
+        logging.error("E: Apktool failed with exit status "+str(result)+". Please Try Again.")
         exit(1)
-    myPrint("I: Successfully decompiled the application. Proceeding with scanning code.", "INFO_WS")
+    color_print("I: Successfully decompiled the application. Proceeding with scanning code.", "INFO_WS")
 
 def findS3Bucket(line):
     temp=re.findall(s3Regex1,line)
@@ -166,16 +166,16 @@ def findPublicIPs(line):
 
 def identifyURLs():
     filecontent = ""
-    for dir_path, dirs, file_names in os.walk(rootDir+apkFileName+"_"+hashlib.md5().hexdigest()):
+    for dir_path, _, file_names in os.walk(rootDir+apkFileName+"_"+hashlib.md5().hexdigest()):
         for file_name in file_names:
             try:
-                fullpath = os.path.join(dir_path,  file_name)
-                fileobj = open(fullpath,mode='r')
+                fullpath = os.path.join(dir_path, file_name)
+                fileobj = open(fullpath, mode='r')
                 filecontent = fileobj.read()
                 fileobj.close()
-            except  Exception  as  e:
-                myPrint("E: Exception while reading  "+fullpath, "ERROR")
-                myPrint(str(e), "ERROR")
+            except Exception as exc:
+                logging.error("E: Exception while reading  "+fullpath)
+                logging.error(exc)
 
             try:
                 threads = map(
@@ -185,8 +185,9 @@ def identifyURLs():
                     thread.start()
                 for thread in threads:
                     thread.join()
-            except  Exception:
-                myPrint("E:  Error  while  spawning  threads", "ERROR")
+            except Exception as exc:
+                logging.error("E:  Error  while  spawning  threads")
+                logging.error(exc)
 
 def displayResults():
     global inScopeAuthorityList, authorityList, s3List, s3WebsiteList, publicIpList
@@ -196,35 +197,34 @@ def displayResults():
     s3WebsiteList=list(set(s3WebsiteList))
     publicIpList=list(set(publicIpList))
     if (len(authorityList)==0):
-        myPrint("\nNo URL found", "INSECURE")
+        color_print("\nNo URL found", "INSECURE")
     else:
-        myPrint("\nList of URLs found in the application", "SECURE")
+        color_print("\nList of URLs found in the application", "SECURE")
         printList(authorityList)
 
     if(scopeMode and len(inScopeAuthorityList)==0):
-        myPrint("\nNo in-scope URL found", "INSECURE")
+        color_print("\nNo in-scope URL found", "INSECURE")
     elif scopeMode:
-        myPrint("\nList of in scope URLs found in the application", "SECURE")
+        color_print("\nList of in scope URLs found in the application", "SECURE")
         printList(inScopeAuthorityList)
 
     if (len(s3List)==0):
-        myPrint("\nNo S3 buckets found", "INSECURE")
+        color_print("\nNo S3 buckets found", "INSECURE")
     else:
-        myPrint("\nList of in S3 buckets found in the application", "SECURE")
+        color_print("\nList of in S3 buckets found in the application", "SECURE")
         printList(s3List)
 
     if (len(s3WebsiteList)==0):
-        myPrint("\nNo S3 websites found", "INSECURE")
+        color_print("\nNo S3 websites found", "INSECURE")
     else:
-        myPrint("\nList of in S3 websites found in the application", "SECURE")
+        color_print("\nList of in S3 websites found in the application", "SECURE")
         printList(s3WebsiteList)
 
     if (len(publicIpList)==0):
-        myPrint("\nNo IPs found", "INSECURE")
+        color_print("\nNo IPs found", "INSECURE")
     else:
-        myPrint("\nList of IPs found in the application", "SECURE")
+        color_print("\nList of IPs found in the application", "SECURE")
         printList(publicIpList)
-    print("")
 
 ####################################################################################################
 
@@ -246,18 +246,16 @@ print(bcolors.OKBLUE+""")
 """+bcolors.ENDC)
 
 if ((len(sys.argv)==2) and (sys.argv[1]=="-h" or sys.argv[1]=="--help")):
-    myPrint("Usage: python APKEnum.py -p/--path <apkPathName> [ -s/--scope \"comma, seperated, list\"]","ERROR")
-    myPrint("\t-p/--path: Pathname of the APK file", "ERROR")
-    myPrint("\t-s/--scope: List of keywords to filter out domains", "ERROR")
-    print()
+    print("Usage: python APKEnum.py -p/--path <apkPathName> [ -s/--scope \"comma, seperated, list\"]")
+    print("\t-p/--path: Pathname of the APK file")
+    print("\t-s/--scope: List of keywords to filter out domains")
     exit(1)
 
 if (len(sys.argv)<3):
-    myPrint("E: Please provide the required arguments to initiate", "ERROR")
+    print("E: Please provide the required arguments to initiate")
     print()
-    myPrint("E: Usage: python APKEnum.py -p/--path <apkPathName> [ -s/--scope \"comma, seperated, list\"]","ERROR")
-    myPrint("E: Please try again!!", "ERROR")
-    print()
+    print("E: Usage: python APKEnum.py -p/--path <apkPathName> [ -s/--scope \"comma, seperated, list\"]")
+    print("E: Please try again!!", "ERROR")
     exit(1)
 
 if ((len(sys.argv)>4) and (sys.argv[3]=="-s" or sys.argv[3]=="--scope")):
@@ -275,6 +273,6 @@ if (sys.argv[1]=="-p" or sys.argv[1]=="--path"):
         identifyURLs()
         displayResults()
     except KeyboardInterrupt:
-        myPrint("I: Acknowledging KeyboardInterrupt. Thank you for using APKEnum", "INFO")
+        color_print("I: Acknowledging KeyboardInterrupt. Thank you for using APKEnum", "INFO")
         exit(0)
-myPrint("Thank You For Using APKEnum","OUTPUT")
+color_print("Thank You For Using APKEnum","OUTPUT")
