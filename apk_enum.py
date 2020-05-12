@@ -17,6 +17,7 @@ scopeList = []
 
 
 class APKEnumReport:
+    """Encapsulates the results of the APK analysis"""
     def __init__(self):
         self.url_list = set()
         self.in_scope_url_list = set()
@@ -100,7 +101,7 @@ def isValidPath(apkFilePath):
     if (os.path.exists(apkFilePath)==False):
         color_print("E: Incorrect APK file path found. Please try again with correct file name.", "ERROR")
         print()
-        exit(1)
+        sys.exit(1)
     else:
         color_print("I: APK File Found.", "INFO_WS")
         apkFileName=ntpath.basename(apkFilePath)
@@ -253,14 +254,14 @@ if ((len(sys.argv)==2) and (sys.argv[1]=="-h" or sys.argv[1]=="--help")):
     print("Usage: python APKEnum.py -p/--path <apkPathName> [ -s/--scope \"comma, seperated, list\"]")
     print("\t-p/--path: Pathname of the APK file")
     print("\t-s/--scope: List of keywords to filter out domains")
-    exit(1)
+    sys.exit(1)
 
 if (len(sys.argv)<3):
     print("E: Please provide the required arguments to initiate")
     print()
     print("E: Usage: python APKEnum.py -p/--path <apkPathName> [ -s/--scope \"comma, seperated, list\"]")
     print("E: Please try again!!", "ERROR")
-    exit(1)
+    sys.exit(1)
 
 if ((len(sys.argv)>4) and (sys.argv[3]=="-s" or sys.argv[3]=="--scope")):
     scopeString=sys.argv[4].strip()
@@ -279,5 +280,5 @@ if (sys.argv[1]=="-p" or sys.argv[1]=="--path"):
         displayResults(report)
     except KeyboardInterrupt:
         color_print("I: Acknowledging KeyboardInterrupt. Thank you for using APKEnum", "INFO")
-        exit(0)
+        sys.exit(0)
 color_print("Thank You For Using APKEnum", "OUTPUT")
