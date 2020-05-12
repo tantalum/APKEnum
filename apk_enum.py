@@ -43,30 +43,30 @@ def color_print(text, category):
     txt_color_bgred = '\033[41m'
     txt_color_fgwhite = '\033[37m'
 
-    if category == "INFO" :
-        print(txt_color_info+txt_color_bold+text+txt_color_endc+"\n")
-    if category == "INFO_WS" :
-        print(txt_color_info+txt_color_bold+text+txt_color_endc)
-    if category == "PLAIN_OUTPUT_WS" :
-        print(txt_color_info+text+txt_color_endc)
-    if category == "ERROR" :
-        print(txt_color_bgred+txt_color_fgwhite+txt_color_bold+text+txt_color_endc)
-    if category == "MESSAGE_WS" :
-        print(txt_color_title+txt_color_bold+text+txt_color_endc)
-    if category == "MESSAGE" :
-        print(txt_color_title+txt_color_bold+text+txt_color_endc+"\n")
-    if category == "INSECURE" :
-        print(txt_color_okred+txt_color_bold+text+txt_color_endc+"\n")
-    if category == "INSECURE_WS" :
-        print(txt_color_okred+txt_color_bold+text+txt_color_endc)
-    if category == "OUTPUT" :
-        print(txt_color_okblue+txt_color_bold+text+txt_color_endc+"\n")
-    if category == "OUTPUT_WS" :
-        print(txt_color_okblue+txt_color_bold+text+txt_color_endc)
-    if category == "SECURE_WS" :
-        print(txt_color_okgreen+txt_color_bold+text+txt_color_endc)
-    if category == "SECURE" :
-        print(txt_color_okgreen+txt_color_bold+text+txt_color_endc+"\n")
+    if category == "INFO":
+        print(txt_color_info + txt_color_bold + text + txt_color_endc + "\n")
+    if category == "INFO_WS":
+        print(txt_color_info + txt_color_bold + text + txt_color_endc)
+    if category == "PLAIN_OUTPUT_WS":
+        print(txt_color_info + text + txt_color_endc)
+    if category == "ERROR":
+        print(txt_color_bgred + txt_color_fgwhite + txt_color_bold + text + txt_color_endc)
+    if category == "MESSAGE_WS":
+        print(txt_color_title + txt_color_bold + text + txt_color_endc)
+    if category == "MESSAGE":
+        print(txt_color_title + txt_color_bold + text + txt_color_endc + "\n")
+    if category == "INSECURE":
+        print(txt_color_okred + txt_color_bold + text + txt_color_endc + "\n")
+    if category == "INSECURE_WS":
+        print(txt_color_okred + txt_color_bold + text + txt_color_endc)
+    if category == "OUTPUT":
+        print(txt_color_okblue + txt_color_bold + text + txt_color_endc + "\n")
+    if category == "OUTPUT_WS":
+        print(txt_color_okblue + txt_color_bold + text + txt_color_endc)
+    if category == "SECURE_WS":
+        print(txt_color_okgreen + txt_color_bold + text + txt_color_endc)
+    if category == "SECURE":
+        print(txt_color_okgreen + txt_color_bold + text + txt_color_endc + "\n")
 
 
 def isNewInstallation():
