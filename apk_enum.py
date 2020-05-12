@@ -13,14 +13,31 @@ apkFilePath = ""
 apkFileName = ""
 apkHash = ""
 scopeMode = False
-
-
 scopeList = []
-authorityList = []
-inScopeAuthorityList = []
-publicIpList = []
-s3List = []
-s3WebsiteList = []
+
+
+class APKEnumReport:
+    def __init__(self):
+        self.url_list = set()
+        self.in_scope_url_list = set()
+        self.ip_list = set()
+        self.s3_bucket_list = set()
+        self.s3_website_list = set()
+
+    def add_url(self, url):
+        self.url_list.add(url)
+
+    def add_scoped_url(self, url):
+        self.in_scope_url_list.add(url)
+
+    def add_ip(self, ip):
+        self.ip_list.add(ip)
+
+    def add_s3_bucket(self, s3_bucket):
+        self.s3_bucket_list.add(s3_bucket)
+
+    def add_s3_website(self, s3_website):
+        self.s3_website_list.add(s3_website)
 
 
 URL_REGEX = r'(http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+):?\d*)([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?' #regex to extract domain
@@ -98,68 +115,67 @@ def printList(lst):
 def reverseEngineerApplication(apkFileName):
     global projectDir
     color_print("I: Initiating APK decompilation process", "INFO_WS")
-    projectDir=rootDir+apkFileName+"_"+hashlib.md5().hexdigest()
-    if (os.path.exists(projectDir)==True):
+    projectDir = rootDir + apkFileName + "_" + hashlib.md5().hexdigest()
+    if os.path.exists(projectDir) == True:
         color_print("I: The APK is already decompiled. Skipping decompilation and proceeding with scanning the application.", "INFO_WS")
-        return projectDir
+        return
     os.mkdir(projectDir)
     color_print("I: Decompiling the APK file using APKtool.", "INFO_WS")
-    result=os.system("java -jar "+APKTOOL_PATH+" d "+"--output "+'"'+projectDir+"/apktool/"+'"'+' "'+apkFilePath+'"'+'>/dev/null')
-    if (result!=0):
+    result = os.system("java -jar "+APKTOOL_PATH+" d "+"--output "+'"'+projectDir+"/apktool/"+'"'+' "'+apkFilePath+'"'+'>/dev/null')
+    if result != 0:
         logging.error("E: Apktool failed with exit status "+str(result)+". Please Try Again.")
-        exit(1)
+        sys.exit(1)
     color_print("I: Successfully decompiled the application. Proceeding with scanning code.", "INFO_WS")
 
-def findS3Bucket(line):
+def findS3Bucket(line, report):
     temp=re.findall(S3_REGEX1,line)
     if (len(temp)!=0):
         for element in temp:
-            s3List.append(element)
+            report.add_s3_bucket(element)
 
 
     temp=re.findall(S3_REGEX2,line)
     if (len(temp)!=0):
         for element in temp:
-            s3List.append(element)
+            report.add_s3_bucket(element)
 
 
     temp=re.findall(S3_REGEX3,line)
     if (len(temp)!=0):
         for element in temp:
-            s3List.append(element)
+            report.add_s3_bucket(element)
 
 
-def findS3Website(line):
+def findS3Website(line, report):
     temp=re.findall(S3_WEBSITE_REGEX1,line)
     if (len(temp)!=0):
         for element in temp:
-            s3WebsiteList.append(element)
+            report.add_s3_website(element)
 
     temp=re.findall(S3_WEBSITE_REGEX2,line)
     if (len(temp)!=0):
         print(temp)
         for element in temp:
-            s3WebsiteList.append(element)
+            report.add_s3_website(element)
 
-
-def findUrls(line):
+def findUrls(line, report):
     temp=re.findall(URL_REGEX,line)
     if (len(temp)!=0):
         for element in temp:
-            authorityList.append(element[0]+"://"+element[1])
+            report.add_url(element[0]+"://"+element[1])
             if(scopeMode):
                 for scope in scopeList:
                     if scope in element[1]:
-                        inScopeAuthorityList.append(element[0]+"://"+element[1])
+                        report.add_scoped_url(element[0]+"://"+element[1])
 
-def findPublicIPs(line):
+def findPublicIPs(line, report):
     temp=re.findall(PUBLIC_IP_REGEX,line)
     if (len(temp)!=0):
         for element in temp:
-            publicIpList.append(element[0])
+            report.add_ip(element[0])
 
 
-def identifyURLs():
+def identifyURLs(report):
     filecontent = ""
     for dir_path, _, file_names in os.walk(rootDir+apkFileName+"_"+hashlib.md5().hexdigest()):
         for file_name in file_names:
@@ -169,12 +185,12 @@ def identifyURLs():
                 filecontent = fileobj.read()
                 fileobj.close()
             except Exception as exc:
-                logging.error("E: Exception while reading  "+fullpath)
+                logging.error("E: Exception while reading  %s", fullpath)
                 logging.error(exc)
 
             try:
                 threads = map(
-                    lambda  op:  threading.Thread(target=op, args=(filecontent,)),
+                    lambda  op:  threading.Thread(target=op, args=(filecontent, report,)),
                     [findUrls, findPublicIPs, findS3Bucket, findS3Website])
                 for thread in threads:
                     thread.start()
@@ -184,42 +200,36 @@ def identifyURLs():
                 logging.error("E:  Error  while  spawning  threads")
                 logging.error(exc)
 
-def displayResults():
-    global inScopeAuthorityList, authorityList, s3List, s3WebsiteList, publicIpList
-    inScopeAuthorityList=list(set(inScopeAuthorityList))
-    authorityList=list(set(authorityList))
-    s3List=list(set(s3List))
-    s3WebsiteList=list(set(s3WebsiteList))
-    publicIpList=list(set(publicIpList))
-    if (len(authorityList)==0):
+def displayResults(report):
+    if len(report.url_list) == 0:
         color_print("\nNo URL found", "INSECURE")
     else:
         color_print("\nList of URLs found in the application", "SECURE")
-        printList(authorityList)
+        printList(report.url_list)
 
-    if(scopeMode and len(inScopeAuthorityList)==0):
+    if scopeMode and len(report.in_scope_url_list) == 0:
         color_print("\nNo in-scope URL found", "INSECURE")
     elif scopeMode:
         color_print("\nList of in scope URLs found in the application", "SECURE")
-        printList(inScopeAuthorityList)
+        printList(report.in_scope_url_list)
 
-    if (len(s3List)==0):
+    if len(report.s3_bucket_list) == 0:
         color_print("\nNo S3 buckets found", "INSECURE")
     else:
         color_print("\nList of in S3 buckets found in the application", "SECURE")
-        printList(s3List)
+        printList(report.s3_bucket_list)
 
-    if (len(s3WebsiteList)==0):
+    if len(report.s3_website_list) == 0:
         color_print("\nNo S3 websites found", "INSECURE")
     else:
         color_print("\nList of in S3 websites found in the application", "SECURE")
-        printList(s3WebsiteList)
+        printList(report.s3_website_list)
 
-    if (len(publicIpList)==0):
+    if len(report.ip_list) == 0:
         color_print("\nNo IPs found", "INSECURE")
     else:
         color_print("\nList of IPs found in the application", "SECURE")
-        printList(publicIpList)
+        printList(report.ip_list)
 
 ####################################################################################################
 
@@ -237,7 +247,6 @@ print("""
  ##:::: ##: ##:::::::: ##::. ##: ########: ##::. ##:. #######:: ##:::: ##:
 ..:::::..::..:::::::::..::::..::........::..::::..:::.......:::..:::::..::
 
-         # Developed By Shiv Sahni - @shiv__sahni
 """)
 
 if ((len(sys.argv)==2) and (sys.argv[1]=="-h" or sys.argv[1]=="--help")):
@@ -261,13 +270,14 @@ if ((len(sys.argv)>4) and (sys.argv[3]=="-s" or sys.argv[3]=="--scope")):
 
 if (sys.argv[1]=="-p" or sys.argv[1]=="--path"):
     apkFilePath=sys.argv[2]
+    report = APKEnumReport()
     try:
         isNewInstallation()
         isValidPath(apkFilePath)
         reverseEngineerApplication(apkFileName)
-        identifyURLs()
-        displayResults()
+        identifyURLs(report)
+        displayResults(report)
     except KeyboardInterrupt:
         color_print("I: Acknowledging KeyboardInterrupt. Thank you for using APKEnum", "INFO")
         exit(0)
-color_print("Thank You For Using APKEnum","OUTPUT")
+color_print("Thank You For Using APKEnum", "OUTPUT")
