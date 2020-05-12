@@ -23,14 +23,14 @@ s3List = []
 s3WebsiteList = []
 
 
-urlRegex = r'(http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+):?\d*)([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?' #regex to extract domain
-apktoolPath = "./Dependencies/apktool.jar"
-s3Regex1 = r"https*://(.+?)\.s3\..+?\.amazonaws\.com\/.+?"
-s3Regex2 = r"https*://s3\..+?\.amazonaws\.com\/(.+?)\/.+?"
-s3Regex3 = r"S3://(.+?)/"
-s3Website1 = r"https*://(.+?)\.s3-website\..+?\.amazonaws\.com"
-s3Website2 = r"https*://(.+?)\.s3-website-.+?\.amazonaws\.com"
-publicIp = r'https*://(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31))(?<!127)(?<!^10)(?<!^0)\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!192\.168)(?<!172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31))\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!\.255$))'
+URL_REGEX = r'(http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+):?\d*)([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?' #regex to extract domain
+APKTOOL_PATH = "./Dependencies/apktool.jar"
+S3_REGEX1 = r"https*://(.+?)\.s3\..+?\.amazonaws\.com\/.+?"
+S3_REGEX2 = r"https*://s3\..+?\.amazonaws\.com\/(.+?)\/.+?"
+S3_REGEX3 = r"S3://(.+?)/"
+S3_WEBSITE_REGEX1 = r"https*://(.+?)\.s3-website\..+?\.amazonaws\.com"
+S3_WEBSITE_REGEX2 = r"https*://(.+?)\.s3-website-.+?\.amazonaws\.com"
+PUBLIC_IP_REGEX = r'https*://(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31))(?<!127)(?<!^10)(?<!^0)\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!192\.168)(?<!172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31))\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(?<!\.255$))'
 
 def color_print(text, category):
     txt_color_title = '\033[95m'
@@ -104,38 +104,38 @@ def reverseEngineerApplication(apkFileName):
         return projectDir
     os.mkdir(projectDir)
     color_print("I: Decompiling the APK file using APKtool.", "INFO_WS")
-    result=os.system("java -jar "+apktoolPath+" d "+"--output "+'"'+projectDir+"/apktool/"+'"'+' "'+apkFilePath+'"'+'>/dev/null')
+    result=os.system("java -jar "+APKTOOL_PATH+" d "+"--output "+'"'+projectDir+"/apktool/"+'"'+' "'+apkFilePath+'"'+'>/dev/null')
     if (result!=0):
         logging.error("E: Apktool failed with exit status "+str(result)+". Please Try Again.")
         exit(1)
     color_print("I: Successfully decompiled the application. Proceeding with scanning code.", "INFO_WS")
 
 def findS3Bucket(line):
-    temp=re.findall(s3Regex1,line)
+    temp=re.findall(S3_REGEX1,line)
     if (len(temp)!=0):
         for element in temp:
             s3List.append(element)
 
 
-    temp=re.findall(s3Regex2,line)
+    temp=re.findall(S3_REGEX2,line)
     if (len(temp)!=0):
         for element in temp:
             s3List.append(element)
 
 
-    temp=re.findall(s3Regex3,line)
+    temp=re.findall(S3_REGEX3,line)
     if (len(temp)!=0):
         for element in temp:
             s3List.append(element)
 
 
 def findS3Website(line):
-    temp=re.findall(s3Website1,line)
+    temp=re.findall(S3_WEBSITE_REGEX1,line)
     if (len(temp)!=0):
         for element in temp:
             s3WebsiteList.append(element)
 
-    temp=re.findall(s3Website2,line)
+    temp=re.findall(S3_WEBSITE_REGEX2,line)
     if (len(temp)!=0):
         print(temp)
         for element in temp:
@@ -143,7 +143,7 @@ def findS3Website(line):
 
 
 def findUrls(line):
-    temp=re.findall(urlRegex,line)
+    temp=re.findall(URL_REGEX,line)
     if (len(temp)!=0):
         for element in temp:
             authorityList.append(element[0]+"://"+element[1])
@@ -153,7 +153,7 @@ def findUrls(line):
                         inScopeAuthorityList.append(element[0]+"://"+element[1])
 
 def findPublicIPs(line):
-    temp=re.findall(publicIp,line)
+    temp=re.findall(PUBLIC_IP_REGEX,line)
     if (len(temp)!=0):
         for element in temp:
             publicIpList.append(element[0])
