@@ -1,35 +1,22 @@
 #!/usr/bin/python
 import os
 import sys
-import ntpath
 import re
-import hashlib
 import threading
 import logging
-
-rootDir = os.path.expanduser("~")+"/.APKEnum/" #ConfigFolder ~/.SourceCodeAnalyzer/
-projectDir = ""
-apkFilePath = ""
-apkFileName = ""
-apkHash = ""
-scopeMode = False
-scopeList = []
-
+import argparse
+import tempfile
 
 class APKEnumReport:
     """Encapsulates the results of the APK analysis"""
     def __init__(self):
         self.url_list = set()
-        self.in_scope_url_list = set()
         self.ip_list = set()
         self.s3_bucket_list = set()
         self.s3_website_list = set()
 
     def add_url(self, url):
         self.url_list.add(url)
-
-    def add_scoped_url(self, url):
-        self.in_scope_url_list.add(url)
 
     def add_ip(self, ip):
         self.ip_list.add(ip)
@@ -87,24 +74,6 @@ def color_print(text, category):
         print(txt_color_okgreen + txt_color_bold + text + txt_color_endc + "\n")
 
 
-def isNewInstallation():
-    if (os.path.exists(rootDir)==False):
-        color_print("Thank you for installing APKEnum", "OUTPUT_WS")
-        os.mkdir(rootDir)
-        return True
-    else:
-        return False
-
-def isValidPath(apkFilePath):
-    global apkFileName
-    color_print("I: Checking if the APK file path is valid.", "INFO_WS")
-    if (os.path.exists(apkFilePath)==False):
-        color_print("E: Incorrect APK file path found. Please try again with correct file name.", "ERROR")
-        print()
-        sys.exit(1)
-    else:
-        color_print("I: APK File Found.", "INFO_WS")
-        apkFileName=ntpath.basename(apkFilePath)
 
 def printList(lst):
     counter=0
@@ -112,21 +81,6 @@ def printList(lst):
         counter=counter+1
         entry=str(counter)+". "+item
         color_print(entry, "PLAIN_OUTPUT_WS")
-
-def reverseEngineerApplication(apkFileName):
-    global projectDir
-    color_print("I: Initiating APK decompilation process", "INFO_WS")
-    projectDir = rootDir + apkFileName + "_" + hashlib.md5().hexdigest()
-    if os.path.exists(projectDir) == True:
-        color_print("I: The APK is already decompiled. Skipping decompilation and proceeding with scanning the application.", "INFO_WS")
-        return
-    os.mkdir(projectDir)
-    color_print("I: Decompiling the APK file using APKtool.", "INFO_WS")
-    result = os.system("java -jar "+APKTOOL_PATH+" d "+"--output "+'"'+projectDir+"/apktool/"+'"'+' "'+apkFilePath+'"'+'>/dev/null')
-    if result != 0:
-        logging.error("E: Apktool failed with exit status "+str(result)+". Please Try Again.")
-        sys.exit(1)
-    color_print("I: Successfully decompiled the application. Proceeding with scanning code.", "INFO_WS")
 
 def findS3Bucket(line, report):
     temp=re.findall(S3_REGEX1,line)
@@ -164,10 +118,6 @@ def findUrls(line, report):
     if (len(temp)!=0):
         for element in temp:
             report.add_url(element[0]+"://"+element[1])
-            if(scopeMode):
-                for scope in scopeList:
-                    if scope in element[1]:
-                        report.add_scoped_url(element[0]+"://"+element[1])
 
 def findPublicIPs(line, report):
     temp=re.findall(PUBLIC_IP_REGEX,line)
@@ -176,9 +126,9 @@ def findPublicIPs(line, report):
             report.add_ip(element[0])
 
 
-def identifyURLs(report):
+def identifyURLs(project_dir, report):
     filecontent = ""
-    for dir_path, _, file_names in os.walk(rootDir+apkFileName+"_"+hashlib.md5().hexdigest()):
+    for dir_path, _, file_names in os.walk(project_dir):
         for file_name in file_names:
             try:
                 fullpath = os.path.join(dir_path, file_name)
@@ -208,12 +158,6 @@ def displayResults(report):
         color_print("\nList of URLs found in the application", "SECURE")
         printList(report.url_list)
 
-    if scopeMode and len(report.in_scope_url_list) == 0:
-        color_print("\nNo in-scope URL found", "INSECURE")
-    elif scopeMode:
-        color_print("\nList of in scope URLs found in the application", "SECURE")
-        printList(report.in_scope_url_list)
-
     if len(report.s3_bucket_list) == 0:
         color_print("\nNo S3 buckets found", "INSECURE")
     else:
@@ -234,51 +178,49 @@ def displayResults(report):
 
 ####################################################################################################
 
+def main(args):
+    # Parse the command line arguments
+    argsparser = argparse.ArgumentParser(description="Find interesting things in Android APKs")
+    argsparser.add_argument('-s', '--source', help="The source directory."
+            + "This is the directory the APK has been decompiled to using `apktool`."
+            + "Cannot be used with other options.")
+    argsparser.add_argument('-a', '--apk', help="The APK file to decompile")
+    argsparser.add_argument('-t', '--tool', help="The path to `apktool` to use")
+    argsparser.add_argument('-d', '--dest', help="The desitination directory to decompile the APK into."
+            + "If not defined a temporary directory is created.")
+    parsedargs = argsparser.parse_args(args)
+
+    project_dir = None
+    if parsedargs.source is not None:
+        if parsedargs.apk is not None or parsedargs.tool is not None or parsedargs.dest is not None:
+            logging.error("Invalid arguments: --source cannot be combined with any other options")
+            argsparser.print_usage()
+            sys.exit(1)
+        project_dir = parsedargs.source
+    elif parsedargs.apk is not None:
+        apk_path = parsedargs.apk
+        apk_tool = 'apktool'
+        if parsedargs.tool is not None:
+            apk_tool = parsedargs.tool
+        if parsedargs.dest is not None:
+            project_dir = parsedargs.dest
+        else:
+            project_dir = tempfile.mkdtemp(prefix="apkenum")
+
+        logging.warn("Decompiling (%s) into (%s) using apktool (%s)", apk_path, project_dir, apk_tool)
+        result = os.system(apk_tool + " d "+"-f --output "+'"'+project_dir+'"'+' "'+apk_path+'"'+'>/dev/null')
+        if result != 0:
+            logging.error("E: Apktool failed with exit status %d. Please Try Again.", result)
+            sys.exit(1)
+    else:
+        argsparser.print_usage()
+        sys.exit(1)
+
+    report = APKEnumReport()
+    identifyURLs(project_dir, report)
+    displayResults(report)
 
 ####################################################################################################
 
-print("""
-
-:::'###::::'########::'##:::'##:'########:'##::: ##:'##::::'##:'##::::'##:
-::'## ##::: ##.... ##: ##::'##:: ##.....:: ###:: ##: ##:::: ##: ###::'###:
-:'##:. ##:: ##:::: ##: ##:'##::: ##::::::: ####: ##: ##:::: ##: ####'####:
-'##:::. ##: ########:: #####:::: ######::: ## ## ##: ##:::: ##: ## ### ##:
- #########: ##.....::: ##. ##::: ##...:::: ##. ####: ##:::: ##: ##. #: ##:
- ##.... ##: ##:::::::: ##:. ##:: ##::::::: ##:. ###: ##:::: ##: ##:.:: ##:
- ##:::: ##: ##:::::::: ##::. ##: ########: ##::. ##:. #######:: ##:::: ##:
-..:::::..::..:::::::::..::::..::........::..::::..:::.......:::..:::::..::
-
-""")
-
-if ((len(sys.argv)==2) and (sys.argv[1]=="-h" or sys.argv[1]=="--help")):
-    print("Usage: python APKEnum.py -p/--path <apkPathName> [ -s/--scope \"comma, seperated, list\"]")
-    print("\t-p/--path: Pathname of the APK file")
-    print("\t-s/--scope: List of keywords to filter out domains")
-    sys.exit(1)
-
-if (len(sys.argv)<3):
-    print("E: Please provide the required arguments to initiate")
-    print()
-    print("E: Usage: python APKEnum.py -p/--path <apkPathName> [ -s/--scope \"comma, seperated, list\"]")
-    print("E: Please try again!!", "ERROR")
-    sys.exit(1)
-
-if ((len(sys.argv)>4) and (sys.argv[3]=="-s" or sys.argv[3]=="--scope")):
-    scopeString=sys.argv[4].strip()
-    scopeList=scopeString.split(',')
-    if len(scopeList)!=0:
-        scopeMode=True
-
-if (sys.argv[1]=="-p" or sys.argv[1]=="--path"):
-    apkFilePath=sys.argv[2]
-    report = APKEnumReport()
-    try:
-        isNewInstallation()
-        isValidPath(apkFilePath)
-        reverseEngineerApplication(apkFileName)
-        identifyURLs(report)
-        displayResults(report)
-    except KeyboardInterrupt:
-        color_print("I: Acknowledging KeyboardInterrupt. Thank you for using APKEnum", "INFO")
-        sys.exit(0)
-color_print("Thank You For Using APKEnum", "OUTPUT")
+if __name__ == '__main__':
+    main(sys.argv[1:])
