@@ -5,17 +5,14 @@
 
 ## Installation
 ### Prerequisites
-- Support For Python 2.7
-- APKTool JAR
+- Support For Python 3.x
+- [APKTool](https://ibotpeaches.github.io/Apktool/) for decompiling an APK.
 
-
-**Note:**  The latest APKTool(v2.4.1) JAR file is already shipped with the package. In case you face decompilation issues, you can download the latest version from [here](https://bitbucket.org/iBotPeaches/apktool/downloads/) and place it in the Dependency directory with name *apktool.jar*
-
-### Walkthrough
-To have a look at the quick walkthrough of APKEnum have a look at [this](https://medium.com/@shivsahni2/apkenum-a-python-utility-for-apk-enumeration-69509d11c032) Medium story.
 
 ## Usage
-The utility takes APK file as an input, performs reverse engineering and gathers information from the decompiled binary. As of now, the script provides the following information by searching the decompiled code:
+APK Enum takes a decompiled APK file as an input. APK Enum can also take an APK file as input and will decompile the APK using the provided `apktool`.
+
+As of now, the script provides the following information by searching the decompiled code:
 
 * List of domains in the application
 
@@ -25,16 +22,14 @@ The utility takes APK file as an input, performs reverse engineering and gathers
 
 * List of IP addresses referenced in the code
 
-![](https://cdn-images-1.medium.com/max/3448/1*2e5i-_GDljBNRDOYdEscaA.png)
-
-Once downloaded, you just need to provide the pathname of the APK file as shown below:
+Once downloaded, you just need to provide the pathname of the decompiled APK file as shown below:
 
 ```
-python APKEnum.py -p ~/Downloads/app-debug.apk
+python APKEnum.py -s /path/to/apktool/output/
 ```
 
-Optionally, we can also provide a list of keywords related to the target, the script would then create an additional list of in-scope domains based on the input keyword list apart from the aforementioned lists by performing string match. 
+Optionally, we can also provide an APK for the tool attempt to decompile if possible:
 
 ```
-python APKEnum.py ~/Downloads/app-debug.apk -s "shiv,sahni,alpha,charlie,example"
+python APKEnum.py -a ~/Downloads/app-debug.apk -d /path/to/place/the/decompiled/files/
 ```
