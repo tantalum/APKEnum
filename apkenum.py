@@ -72,6 +72,8 @@ def color_print(text, category):
         print(txt_color_okgreen + txt_color_bold + text + txt_color_endc)
     if category == "SECURE":
         print(txt_color_okgreen + txt_color_bold + text + txt_color_endc + "\n")
+    else:
+        print(text + "\n")
 
 
 
