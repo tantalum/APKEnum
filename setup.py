@@ -7,5 +7,6 @@ setup(name='APK Enum',
       author_email='blit32@circuitsofimagination.com',
       url='https://github.com/tantalum/APKEnum',
       license='GPL',
-      scripts=['scripts/apkenum']
+      packages=['apkenum'],
+      scripts=['apk-enum']
      )
