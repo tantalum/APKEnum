@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+import xml.etree.ElementTree as ET
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ class APKSource:
                     self.file_list.append(fullpath)
         return self.file_list
 
-    def find_file(self, matcher):
+    def find_files(self, matcher):
         return [fname for fname in self.files() if re.match(matcher, fname)]
 
     def with_files_contents(self, action):
@@ -99,7 +100,7 @@ class S3BucketsExtractor(InformatioExtractor):
         for el in results:
             self.buckets.add(el)
 
-class S3URLsExtrctor:
+class S3URLsExtrctor(InformatioExtractor):
     S3_WEBSITE_REGEX1 = r"https*://(.+?)\.s3-website\..+?\.amazonaws\.com"
     S3_WEBSITE_REGEX2 = r"https*://(.+?)\.s3-website-.+?\.amazonaws\.com"
 
@@ -118,4 +119,28 @@ class S3URLsExtrctor:
         results = re.findall(S3URLsExtrctor.S3_WEBSITE_REGEX2, data)
         for el in results:
             self.urls.add(el)
+
+class PermissionsExtractor(InformatioExtractor):
+    MANIFEST_FILE_PATTERN = r".*AndroidManifest.xml$"
+
+    def __init__(self):
+        super().__init__()
+        self.permissions = set()
+
+    def process(self, apk_source):
+        manifests = apk_source.find_files(PermissionsExtractor.MANIFEST_FILE_PATTERN)
+        for manifest in manifests:
+            self._extract_permissions(manifest)
+        return self.permissions
+
+    def _extract_permissions(self, manifest):
+        logger.debug("Extracting permissions from (%s)", manifest)
+        try:
+            tree = ET.parse(manifest)
+            root = tree.getroot()
+            perms = [tag.attrib['{http://schemas.android.com/apk/res/android}name'] for tag in root.iter('uses-permission')]
+            self.permissions.update(perms)
+        except Exception as exc:
+            logger.error("Failed to extract permissions from (%s)", manifest)
+            logger.error(exc)
 

@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/python3
+
 import os
 import sys
 import re
@@ -8,7 +9,7 @@ import argparse
 import tempfile
 
 from apkenum.report import Report, ReportSection, TextReportFormatter
-from apkenum.extraction import URLsExtractor, IPsExtractor, S3BucketsExtractor, S3URLsExtrctor, APKSource
+from apkenum.extraction import URLsExtractor, IPsExtractor, S3BucketsExtractor, S3URLsExtrctor, APKSource, PermissionsExtractor
 
 def buildReport(apk_source, sections_extractors):
     report = Report()
@@ -64,7 +65,8 @@ def main(args):
             (ReportSection("URLs"), URLsExtractor()),
             (ReportSection("IPs"), IPsExtractor()),
             (ReportSection("S3 Buckets"), S3BucketsExtractor()),
-            (ReportSection("S3 URLs"), S3URLsExtrctor())
+            (ReportSection("S3 URLs"), S3URLsExtrctor()),
+            (ReportSection("Permisssions"), PermissionsExtractor())
             ]
 
     report = buildReport(apk_source, sections_extractors)
