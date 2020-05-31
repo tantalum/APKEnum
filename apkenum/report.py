@@ -7,6 +7,9 @@ class ReportSection:
     def add_value(self, value):
         self.values.append(value)
 
+    def add_all_values(self, values):
+        self.values += values
+
     def add_sub_section(self, sub_section):
         self.sub_sections.append(sub_section)
 

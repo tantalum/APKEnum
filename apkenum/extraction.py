@@ -8,39 +8,24 @@ logger = logging.getLogger(__name__)
 class APKSource:
     def __init__(self, root_dir):
         self.root_dir = root_dir
-        self.file_list = None
 
 
     def files(self):
-        if self.file_list is None:
-            self.file_list = []
-            for dir_path, _, file_names in os.walk(self.root_dir):
-                for file_name in file_names:
-                    fullpath = os.path.join(dir_path, file_name)
-                    logger.debug("Adding file (%s) to file list", fullpath)
-                    self.file_list.append(fullpath)
-        return self.file_list
-
-    def find_files(self, matcher):
-        return [fname for fname in self.files() if re.match(matcher, fname)]
-
-    def with_files_contents(self, action):
-        for fname in self.files():
-            try:
-                logger.debug("Processing file (%s)", fname)
-                with open(fname, 'r') as f:
-                    fdata = f.read()
-                    action(fdata)
-            except Exception as exc:
-                logger.error("Error processing file (%s)", fname)
-                logger.error(exc)
+        for dir_path, _, file_names in os.walk(self.root_dir):
+            for file_name in file_names:
+                fullpath = os.path.join(dir_path, file_name)
+                logger.debug("Adding file (%s) to file list", fullpath)
+                yield fullpath
 
 
 class InformatioExtractor:
     def __init__(self):
         pass
 
-    def process(self, apk_source):
+    def process(self, filename, filecontent):
+        raise NotImplementedError
+
+    def results(self):
         raise NotImplementedError
 
 class URLsExtractor(InformatioExtractor):
@@ -50,14 +35,14 @@ class URLsExtractor(InformatioExtractor):
         super().__init__()
         self.urls = set()
 
-    def process(self, apk_source):
-        apk_source.with_files_contents(self.extrac_urls)
-        return self.urls
-
-    def extrac_urls(self, data):
+    def process(self, filename, filecontent):
+        data = filecontent.decode('utf-8')
         results = re.findall(URLsExtractor.URL_REGEX, data)
         for el in results:
             self.urls.add(el[0]+"://"+el[1])
+
+    def results(self):
+        return self.urls
 
 
 class IPsExtractor(InformatioExtractor):
@@ -67,14 +52,14 @@ class IPsExtractor(InformatioExtractor):
         super().__init__()
         self.ips = set()
 
-    def process(self, apk_source):
-        apk_source.with_files_contents(self.extract_ips)
-        return self.ips
-
-    def extract_ips(self, data):
+    def process(self, filename, filecontent):
+        data = filecontent.decode('utf-8')
         results = re.findall(IPsExtractor.IP_REGEX, data)
         for el in results:
             self.ips.add(el)
+
+    def results(self):
+        return self.ips
 
 class S3BucketsExtractor(InformatioExtractor):
     S3_REGEX1 = r"https*://(.+?)\.s3\..+?\.amazonaws\.com\/.+?"
@@ -85,11 +70,8 @@ class S3BucketsExtractor(InformatioExtractor):
         super().__init__()
         self.buckets = set()
 
-    def process(self, apk_source):
-        apk_source.with_files_contents(self.extract_buckets)
-        return self.buckets
-
-    def extract_buckets(self, data):
+    def process(self, filename, filecontent):
+        data = filecontent.decode('utf-8')
         results = re.findall(S3BucketsExtractor.S3_REGEX1, data)
         for el in results:
             self.buckets.add(el)
@@ -100,6 +82,9 @@ class S3BucketsExtractor(InformatioExtractor):
         for el in results:
             self.buckets.add(el)
 
+    def results(self):
+        return self.buckets
+
 class S3URLsExtrctor(InformatioExtractor):
     S3_WEBSITE_REGEX1 = r"https*://(.+?)\.s3-website\..+?\.amazonaws\.com"
     S3_WEBSITE_REGEX2 = r"https*://(.+?)\.s3-website-.+?\.amazonaws\.com"
@@ -108,17 +93,17 @@ class S3URLsExtrctor(InformatioExtractor):
         super().__init__()
         self.urls = set()
 
-    def process(self, apk_source):
-        apk_source.with_files_contents(self.extrac_s3_url)
-        return self.urls
-
-    def extrac_s3_url(self, data):
+    def process(self, filename, filecontent):
+        data = filecontent.decode('utf-8')
         results = re.findall(S3URLsExtrctor.S3_WEBSITE_REGEX1, data)
         for el in results:
             self.urls.add(el)
         results = re.findall(S3URLsExtrctor.S3_WEBSITE_REGEX2, data)
         for el in results:
             self.urls.add(el)
+
+    def results(self):
+        return self.urls
 
 class PermissionsExtractor(InformatioExtractor):
     MANIFEST_FILE_PATTERN = r".*AndroidManifest.xml$"
@@ -127,20 +112,13 @@ class PermissionsExtractor(InformatioExtractor):
         super().__init__()
         self.permissions = set()
 
-    def process(self, apk_source):
-        manifests = apk_source.find_files(PermissionsExtractor.MANIFEST_FILE_PATTERN)
-        for manifest in manifests:
-            self._extract_permissions(manifest)
-        return self.permissions
-
-    def _extract_permissions(self, manifest):
-        logger.debug("Extracting permissions from (%s)", manifest)
-        try:
-            tree = ET.parse(manifest)
-            root = tree.getroot()
+    def process(self, filename, filecontent):
+        if re.match(PermissionsExtractor.MANIFEST_FILE_PATTERN, filename):
+            logger.debug("Extracting permissions from (%s)", filename)
+            root = ET.fromstring(filecontent)
             perms = [tag.attrib['{http://schemas.android.com/apk/res/android}name'] for tag in root.iter('uses-permission')]
             self.permissions.update(perms)
-        except Exception as exc:
-            logger.error("Failed to extract permissions from (%s)", manifest)
-            logger.error(exc)
+
+    def results(self):
+        return self.permissions
 
