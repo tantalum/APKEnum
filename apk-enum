@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -27,18 +27,15 @@ class ReportRunner:
         return report
     
     def _mine(self):
-        for filename in self.apk_source.files():
-            try :
-                with open(filename, 'rb') as f:
-                    filecontent = f.read()
-                    for (_, extractor) in self.sections_extractors:
-                        try:
-                            extractor.process(filename, filecontent)
-                        except Exception as exc:
-                            logger.error("Error processing file (%s)", filename)
-                            logger.error(exc)
+        logger.info("Analyzing APK")
+        self.apk_source.analyze()
+        logger.info("Running extractors");
+        for (_, extractor) in self.sections_extractors:
+            logger.info("Running extractor %s", extractor)
+            try:
+                extractor.process(self.apk_source)
             except Exception as exc:
-                logger.error("Error reading file (%s)", filename)
+                logger.error("Error processing apk")
                 logger.error(exc)
 
 ####################################################################################################
@@ -46,42 +43,17 @@ class ReportRunner:
 def main(args):
     # Parse the command line arguments
     argsparser = argparse.ArgumentParser(description="Find interesting things in Android APKs")
-    argsparser.add_argument('-s', '--source', help="The source directory."
-            + "This is the directory the APK has been decompiled to using `apktool`."
-            + "Cannot be used with other options.")
     argsparser.add_argument('-a', '--apk', help="The APK file to decompile")
-    argsparser.add_argument('-t', '--tool', help="The path to `apktool` to use")
-    argsparser.add_argument('-d', '--dest', help="The desitination directory to decompile the APK into."
-            + "If not defined a temporary directory is created.")
     parsedargs = argsparser.parse_args(args)
 
-    project_dir = None
-    if parsedargs.source is not None:
-        if parsedargs.apk is not None or parsedargs.tool is not None or parsedargs.dest is not None:
-            logger.error("Invalid arguments: --source cannot be combined with any other options")
-            argsparser.print_usage()
-            sys.exit(1)
-        project_dir = parsedargs.source
-    elif parsedargs.apk is not None:
+    apk_path = None
+    if parsedargs.apk is not None:
         apk_path = parsedargs.apk
-        apk_tool = 'apktool'
-        if parsedargs.tool is not None:
-            apk_tool = parsedargs.tool
-        if parsedargs.dest is not None:
-            project_dir = parsedargs.dest
-        else:
-            project_dir = tempfile.mkdtemp(prefix="apkenum")
-
-        logger.warn("Decompiling (%s) into (%s) using apktool (%s)", apk_path, project_dir, apk_tool)
-        result = os.system(apk_tool + " d "+"-f --output "+'"'+project_dir+'"'+' "'+apk_path+'"'+'>/dev/null')
-        if result != 0:
-            logger.error("E: Apktool failed with exit status %d. Please Try Again.", result)
-            sys.exit(1)
     else:
         argsparser.print_usage()
         sys.exit(1)
 
-    apk_source = APKSource(project_dir)
+    apk_source = APKSource(apk_path)
     sections_extractors = [
             (ReportSection("URLs"), URLsExtractor()),
             (ReportSection("IPs"), IPsExtractor()),
