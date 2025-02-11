@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 
-import os
 import sys
-import re
-import threading
 import logging
 import argparse
-import tempfile
+import androguard
 
 from apkenum.report import Report, ReportSection, TextReportFormatter
 from apkenum.extraction import URLsExtractor, IPsExtractor, S3BucketsExtractor, S3URLsExtrctor, APKSource, PermissionsExtractor
@@ -41,6 +38,8 @@ class ReportRunner:
 ####################################################################################################
 
 def main(args):
+    logging.basicConfig(level=logging.WARN)
+    androguard.util.set_log("WARNING")
     # Parse the command line arguments
     argsparser = argparse.ArgumentParser(description="Find interesting things in Android APKs")
     argsparser.add_argument('-a', '--apk', help="The APK file to decompile")
@@ -62,10 +61,14 @@ def main(args):
             (ReportSection("Permisssions"), PermissionsExtractor())
             ]
 
+    logger.info("Generating Report")
     report_runner = ReportRunner(apk_source, sections_extractors)
     report = report_runner.build_report()
+    logger.info("Formatting Report")
     formatter = TextReportFormatter()
+    logger.info("Writing report")
     formatter.write_report(report, sys.stdout)
+    logger.info("Exiting")
 
 ####################################################################################################
 
